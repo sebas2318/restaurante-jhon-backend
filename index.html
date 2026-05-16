@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurante de Jhon - Autenticación</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        h2 { text-align: center; color: #2c3e50; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 5px; }
+        label { font-weight: bold; color: #555; }
+        input, select { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        button { width: 100%; padding: 12px; background-color: #0056b3; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        button:hover { background-color: #004494; }
+        .toggle-link { text-align: center; margin-top: 15px; font-size: 14px; color: #0056b3; cursor: pointer; }
+        .alert { padding: 10px; border-radius: 4px; margin-bottom: 15px; font-weight: bold; text-align: center; display: none; }
+        .alert-success { background-color: #d4edda; color: #155724; }
+        .alert-danger { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="alertBox" class="alert"></div>
+
+    <div id="loginSection">
+        <h2>Iniciar Sesión</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Correo Electrónico:</label>
+                <input type="email" id="loginEmail" required placeholder="ejemplo@restaurante.com">
+            </div>
+            <div class="form-group">
+                <label>Contraseña:</label>
+                <input type="password" id="loginPassword" required placeholder="********">
+            </div>
+            <button type="submit">Ingresar</button>
+        </form>
+        <div class="toggle-link" onclick="toggleForms(true)">¿No tienes cuenta? Regístrate aquí</div>
+    </div>
+
+    <div id="registerSection" style="display: none;">
+        <h2>Registro de Personal</h2>
+        <form id="registerForm">
+            <div class="form-group">
+                <label>Nombre Completo:</label>
+                <input type="text" id="regNombre" required placeholder="Nombre Apellido">
+            </div>
+            <div class="form-group">
+                <label>Correo Electrónico:</label>
+                <input type="email" id="regEmail" required placeholder="correo@restaurante.com">
+            </div>
+            <div class="form-group">
+                <label>Contraseña:</label>
+                <input type="password" id="regPassword" required placeholder="Mínimo 6 caracteres">
+            </div>
+            <div class="form-group">
+                <label>Rol asignado:</label>
+                <select id="regRol">
+                    <option value="Mesero">Mesero</option>
+                    <option value="Cocinero">Cocinero</option>
+                    <option value="Administrador">Administrador</option>
+                </select>
+            </div>
+            <button type="submit">Crear Cuenta</button>
+        </form>
+        <div class="toggle-link" onclick="toggleForms(false)">¿Ya tienes cuenta? Inicia sesión</div>
+    </div>
+</div>
+
+<script>
+    const alertBox = document.getElementById('alertBox');
+
+    // Alternar vistas entre Login y Registro
+    function toggleForms(showRegister) {
+        document.getElementById('registerSection').style.display = showRegister ? 'block' : 'none';
+        document.getElementById('loginSection').style.display = showRegister ? 'none' : 'block';
+        alertBox.style.display = 'none';
+    }
+
+    function mostrarAlerta(mensaje, esExito) {
+        alertBox.textContent = mensaje;
+        alertBox.className = `alert ${esExito ? 'alert-success' : 'alert-danger'}`;
+        alertBox.style.display = 'block';
+    }
+
+    // Petición al Endpoint de Registro (POST /api/registro.php)
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const datos = {
+            nombre: document.getElementById('regNombre').value,
+            email: document.getElementById('regEmail').value,
+            password: document.getElementById('regPassword').value,
+            rol: document.getElementById('regRol').value
+        };
+
+        try {
+            const respuesta = await fetch('api/registro.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(datos)
+            });
+            const resultado = await respuesta.json();
+
+            if (respuesta.ok) {
+                mostrarAlerta(resultado.mensaje, true);
+                document.getElementById('registerForm').reset();
+                setTimeout(() => toggleForms(false), 2000); // Redirigir a login
+            } else {
+                mostrarAlerta(resultado.error || 'Fallo al registrar', false);
+            }
+        } catch (error) {
+            mostrarAlerta('Error de conexión con el servidor backend', false);
+        }
+    });
+
+    // Petición al Endpoint de Login (POST /api/login.php)
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const datos = {
+            email: document.getElementById('loginEmail').value,
+            password: document.getElementById('loginPassword').value
+        };
+
+        try {
+            const respuesta = await fetch('api/login.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(datos)
+            });
+            const resultado = await respuesta.json();
+
+            if (respuesta.ok) {
+                // Mensaje requerido por la guía: Autenticación satisfactoria
+                mostrarAlerta(`¡${resultado.mensaje}! Bienvenido, ${resultado.usuario.nombre} (${resultado.usuario.rol})`, true);
+            } else {
+                // Mensaje requerido por la guía: Error en la autenticación
+                mostrarAlerta(resultado.error, false);
+            }
+        } catch (error) {
+            mostrarAlerta('Error de conexión con el servidor backend', false);
+        }
+    });
+</script>
+</body>
+</html>
