@@ -1,47 +1,61 @@
 <?php
-/**
- * @file login.php
- * @route POST /api/login.php
- */
-
-// Cabeceras HTTP obligatorias para una API REST
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-include_once '../config/database.php';
-include_once '../controladores/UsuarioController.php';
+$json = file_get_contents('php://input');
+$data = json_decode($json, true);
 
-$database = new Database();
-$db = $database->getConnection();
-$controller = new UsuarioController($db);
+if ($data !== null) {
+    foreach ($data as $key => $value) {
+        $_POST[$key] = $value;
+    }
+}
 
-// Capturar el cuerpo de la petición POST
-$data = json_decode(file_get_contents("php://input"));
+require_once '../config/database.php';
+require_once '../controladores/UsuarioController.php';
 
-// Validar parámetros requeridos por la guía (usuario/email y contraseña)
-if(!empty($data->email) && !empty($data->password)) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    $autenticacion = $controller->login($data->email, $data->password);
-    
-    if($autenticacion['status']) {
-        http_response_code(200); // Código 200: Éxito
-        // Mensaje de autenticación satisfactoria requerido por la guía
-        echo json_encode([
-            "success" => true,
-            "mensaje" => $autenticacion['message'],
-            "usuario" => $autenticacion['usuario']
-        ]);
+    if (!empty($_POST['correo']) && !empty($_POST['contrasena'])) {
+        
+        $database = new Database();
+        $db = $database->getConnection();
+        
+        $usuarioController = new UsuarioController($db);
+        
+        $correo = $_POST['correo'];
+        $contrasena = $_POST['contrasena'];
+        
+        $usuario = $usuarioController->login($correo, $contrasena);
+        
+        if ($usuario) {
+            http_response_code(200);
+        
+            echo json_encode([
+                "message" => "Inicio de sesión exitoso.",
+                "usuario" => [
+                    "id" => $usuario['id'] ?? $usuario['id_usuario'] ?? $usuario['ID'] ?? null,
+                    "nombre" => $usuario['nombre'] ?? $usuario['nombre_completo'] ?? $usuario['Nombre'] ?? null,
+                    "correo" => $usuario['correo'] ?? $usuario['email'] ?? $usuario['Correo'] ?? null,
+                    "rol" => $usuario['rol'] ?? $usuario['id_rol'] ?? null
+                ]
+            ]);
+        } else {
+            http_response_code(401);
+            echo json_encode(["error" => "Credenciales incorrectas. Verifique su correo y contraseña."]);
+        }
+        
     } else {
-        http_response_code(401); // Código 401: No autorizado
-        // Mensaje de error en la autenticación requerido por la guía
-        echo json_encode([
-            "success" => false,
-            "error" => $autenticacion['message']
-        ]);
+        http_response_code(400);
+        echo json_encode(["error" => "Por favor provea un email y una contraseña."]);
     }
 } else {
-    http_response_code(400);
-    echo json_encode(["error" => "Por favor provea un email y una contraseña."]);
+    http_response_code(405);
+    echo json_encode(["error" => "Método no permitido. Utilice POST."]);
 }
 ?>

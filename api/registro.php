@@ -1,39 +1,50 @@
 <?php
-/**
- * @file registro.php
- * @route POST /api/registro.php
- */
-
-// Cabeceras HTTP obligatorias para una API REST
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-include_once '../config/database.php';
-include_once '../controladores/UsuarioController.php';
+$json = file_get_contents('php://input');
+$data = json_decode($json, true);
 
-// Instanciar base de datos y controlador
-$database = new Database();
-$db = $database->getConnection();
-$controller = new UsuarioController($db);
-
-// Leer los datos JSON del cuerpo de la petición (Body)
-$data = json_decode(file_get_contents("php://input"));
-
-// Validar que los campos requeridos existan
-if(!empty($data->nombre) && !empty($data->email) && !empty($data->password) && !empty($data->rol)) {
-    
-    $resultado = $controller->registrar($data->nombre, $data->email, $data->password, $data->rol);
-    
-    if($resultado['status']) {
-        http_response_code(201); // Código 201: Creado
-        echo json_encode(["mensaje" => $resultado['message']]);
-    } else {
-        http_response_code(400); // Código 400: Solicitud incorrecta
-        echo json_encode(["error" => $resultado['message']]);
+if ($data !== null) {
+    foreach ($data as $key => $value) {
+        $_POST[$key] = $value;
     }
-} else {
-    http_response_code(400);
-    echo json_encode(["error" => "No se pudo registrar el usuario. Datos incompletos."]);
+}
+
+require_once '../config/database.php';
+require_once '../controladores/UsuarioController.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    
+    if (!empty($_POST['nombre']) && !empty($_POST['correo']) && !empty($_POST['contrasena']) && !empty($_POST['rol'])) {
+        
+        $database = new Database();
+        $db = $database->getConnection();
+        
+        $usuarioController = new UsuarioController($db);
+        
+        // Asignar los 4 valores recibidos
+        $nombre = $_POST['nombre'];
+        $correo = $_POST['correo'];
+        $contrasena = $_POST['contrasena'];
+        $rol = $_POST['rol']; 
+        
+        if ($usuarioController->registrar($nombre, $correo, $contrasena, $rol)) {
+            http_response_code(201);
+            echo json_encode(["message" => "Usuario registrado exitosamente."]);
+        } else {
+            http_response_code(500);
+            echo json_encode(["error" => "No se pudo registrar el usuario. El correo ya existe o hubo un error en el servidor."]);
+        }
+        
+    } else {
+        http_response_code(400);
+        echo json_encode(["error" => "No se pudo registrar el usuario. Datos incompletos (Falta nombre, correo, contrasena o rol)."]);
+    }
 }
 ?>

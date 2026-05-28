@@ -72,7 +72,6 @@
 <script>
     const alertBox = document.getElementById('alertBox');
 
-    // Alternar vistas entre Login y Registro
     function toggleForms(showRegister) {
         document.getElementById('registerSection').style.display = showRegister ? 'block' : 'none';
         document.getElementById('loginSection').style.display = showRegister ? 'none' : 'block';
@@ -85,13 +84,15 @@
         alertBox.style.display = 'block';
     }
 
-    // Petición al Endpoint de Registro (POST /api/registro.php)
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+
+        alertBox.style.display = 'none';
+        
         const datos = {
             nombre: document.getElementById('regNombre').value,
-            email: document.getElementById('regEmail').value,
-            password: document.getElementById('regPassword').value,
+            correo: document.getElementById('regEmail').value, // Antes decía 'email'
+            contrasena: document.getElementById('regPassword').value, // Antes decía 'password'
             rol: document.getElementById('regRol').value
         };
 
@@ -104,7 +105,7 @@
             const resultado = await respuesta.json();
 
             if (respuesta.ok) {
-                mostrarAlerta(resultado.mensaje, true);
+                mostrarAlerta(resultado.message || 'Usuario registrado exitosamente.', true);
                 document.getElementById('registerForm').reset();
                 setTimeout(() => toggleForms(false), 2000); // Redirigir a login
             } else {
@@ -115,12 +116,14 @@
         }
     });
 
-    // Petición al Endpoint de Login (POST /api/login.php)
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+
+        alertBox.style.display = 'none';
+        
         const datos = {
-            email: document.getElementById('loginEmail').value,
-            password: document.getElementById('loginPassword').value
+            correo: document.getElementById('loginEmail').value, // Antes decía 'email'
+            contrasena: document.getElementById('loginPassword').value // Antes decía 'password'
         };
 
         try {
@@ -132,11 +135,13 @@
             const resultado = await respuesta.json();
 
             if (respuesta.ok) {
-                // Mensaje requerido por la guía: Autenticación satisfactoria
-                mostrarAlerta(`¡${resultado.mensaje}! Bienvenido, ${resultado.usuario.nombre} (${resultado.usuario.rol})`, true);
+
+                const nombreUsuario = resultado.usuario && resultado.usuario.nombre ? resultado.usuario.nombre : "Personal";
+                const rolUsuario = resultado.usuario && resultado.usuario.rol ? resultado.usuario.rol : "Asignado";
+                
+                mostrarAlerta(`¡${resultado.message}! Bienvenido, ${nombreUsuario} (${rolUsuario})`, true);
             } else {
-                // Mensaje requerido por la guía: Error en la autenticación
-                mostrarAlerta(resultado.error, false);
+                mostrarAlerta(resultado.error || 'Error en la autenticación', false);
             }
         } catch (error) {
             mostrarAlerta('Error de conexión con el servidor backend', false);
