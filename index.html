@@ -3,25 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurante de Jhon - Autenticación</title>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .container { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-        h2 { text-align: center; color: #2c3e50; margin-bottom: 20px; }
-        .form-group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 5px; }
-        label { font-weight: bold; color: #555; }
-        input, select { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
-        button { width: 100%; padding: 12px; background-color: #0056b3; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
-        button:hover { background-color: #004494; }
-        .toggle-link { text-align: center; margin-top: 15px; font-size: 14px; color: #0056b3; cursor: pointer; }
-        .alert { padding: 10px; border-radius: 4px; margin-bottom: 15px; font-weight: bold; text-align: center; display: none; }
-        .alert-success { background-color: #d4edda; color: #155724; }
-        .alert-danger { background-color: #f8d7da; color: #721c24; }
-    </style>
+    <title>Restaurante de Jhon - Sistema Integrado</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="container">
+<div id="mainContainer" class="container">
     <div id="alertBox" class="alert"></div>
 
     <div id="loginSection">
@@ -67,10 +54,104 @@
         </form>
         <div class="toggle-link" onclick="toggleForms(false)">¿Ya tienes cuenta? Inicia sesión</div>
     </div>
+
+    <div id="appWorkspace" style="display: none;">
+        <div id="userInfo" class="user-info"></div>
+
+        <div id="panelMesero" class="panel-rol">
+    <h3>Panel de Mesero - Crear Pedido</h3>
+    
+    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #e3e6f0; margin-bottom: 20px;">
+        <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+            <div class="form-group" style="flex: 2; min-width: 200px; margin-bottom: 0;">
+                <label>Seleccionar Producto:</label>
+                <select id="selectProductoMesa"></select>
+            </div>
+            <div class="form-group" style="flex: 1; min-width: 80px; margin-bottom: 0;">
+                <label>Cantidad:</label>
+                <input type="number" id="cantProductoMesa" value="1" min="1">
+            </div>
+            <button type="button" class="btn-action" onclick="agregarAlCarrito()" style="height: 40px; padding: 0 20px;">Añadir</button>
+        </div>
+    </div>
+
+    <h4>Artículos en el Pedido Actual</h4>
+    <table style="margin-bottom: 20px;">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Precio Unit.</th>
+                <th>Cantidad</th>
+                <th>Subtotal</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody id="tablaCarritoPedido"></tbody>
+    </table>
+
+    <form id="pedidoForm" style="margin-bottom: 40px;">
+        <div class="form-group">
+            <label style="font-size: 18px; color: #2c3e50;">Total Automático ($):</label>
+            <input type="number" id="pedTotal" readonly required style="font-size: 20px; font-weight: bold; color: #28a745; background-color: #e9ecef;" placeholder="0.00">
+        </div>
+        <button type="submit">Enviar a Cocina</button>
+    </form>
+
+    <hr style="border: 0; height: 1px; background: #ddd; margin: 30px 0;">
+
+    <h3>Cuentas por Cobrar (Pedidos Listos)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>ID Pedido</th>
+                <th>Detalles</th>
+                <th>Total</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody id="tablaCaja"></tbody>
+    </table>
+</div>
+
+<div id="panelAdministrador" class="panel-rol">
+    <h3>Panel de Administrador - Gestión de Inventario</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Stock</th>
+                <th>Precio</th>
+            </tr>
+        </thead>
+        <tbody id="tablaInventario"></tbody>
+    </table>
+</div>
+
+        <div id="panelCocinero" class="panel-rol">
+            <h3>Panel de Cocina - Pedidos Pendientes</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Detalles</th>
+                        <th>Mesero</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaCocina"></tbody>
+            </table>
+        </div>
+
+
+        <button class="btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
+    </div>
 </div>
 
 <script>
     const alertBox = document.getElementById('alertBox');
+    const mainContainer = document.getElementById('mainContainer');
+    let productosDisponibles = [];
+    let carritoActual = [];
 
     function toggleForms(showRegister) {
         document.getElementById('registerSection').style.display = showRegister ? 'block' : 'none';
@@ -84,15 +165,93 @@
         alertBox.style.display = 'block';
     }
 
+    function redireccionarUsuario(usuario) {
+    document.getElementById('loginSection').style.display = 'none';
+    document.getElementById('registerSection').style.display = 'none';
+    
+    document.getElementById('appWorkspace').style.display = 'block';
+    mainContainer.classList.add('wide');
+
+    document.getElementById('userInfo').textContent = `Usuario: ${usuario.nombre} | Rol: ${usuario.rol}`;
+
+    document.querySelectorAll('.panel-rol').forEach(panel => {
+        panel.style.display = 'none';
+    });
+
+    if (usuario.rol === 'Mesero') {
+        document.getElementById('panelMesero').style.display = 'block';
+        carritoActual = []; 
+        renderizarCarrito();
+        cargarProductosParaMesero(); 
+        cargarPedidosCaja(); 
+    } 
+    else if (usuario.rol === 'Cocinero') {
+        document.getElementById('panelCocinero').style.display = 'block';
+        cargarPedidosCocina();
+    } 
+    else if (usuario.rol === 'Administrador') {
+        document.getElementById('panelAdministrador').style.display = 'block';
+        cargarInventario();
+    }
+    }
+
+    function cerrarSesion() {
+        localStorage.clear();
+        mainContainer.classList.remove('wide');
+        document.getElementById('appWorkspace').style.display = 'none';
+        document.getElementById('loginSection').style.display = 'block';
+        document.getElementById('loginForm').reset();
+        alertBox.style.display = 'none';
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const sesionGuardada = localStorage.getItem('usuario_sesion');
+        if (sesionGuardada) {
+            redireccionarUsuario(JSON.parse(sesionGuardada));
+        }
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        alertBox.style.display = 'none';
+        
+        const datos = {
+            correo: document.getElementById('loginEmail').value,
+            contrasena: document.getElementById('loginPassword').value
+        };
+
+        try {
+            const respuesta = await fetch('api/login.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(datos)
+            });
+            const resultado = await respuesta.json();
+
+            if (respuesta.ok) {
+                localStorage.setItem('usuario_sesion', JSON.stringify(resultado.usuario));
+                mostrarAlerta(`¡Bienvenido! Redireccionando...`, true);
+                
+                setTimeout(() => {
+                    alertBox.style.display = 'none';
+                    redireccionarUsuario(resultado.usuario);
+                }, 1000);
+            } else {
+                mostrarAlerta(resultado.error || 'Error en la autenticación', false);
+            }
+        } catch (error) {
+            mostrarAlerta('Error de conexión con el servidor backend', false);
+        }
+    });
+
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-
         alertBox.style.display = 'none';
         
         const datos = {
             nombre: document.getElementById('regNombre').value,
-            correo: document.getElementById('regEmail').value, // Antes decía 'email'
-            contrasena: document.getElementById('regPassword').value, // Antes decía 'password'
+            correo: document.getElementById('regEmail').value,
+            contrasena: document.getElementById('regPassword').value,
             rol: document.getElementById('regRol').value
         };
 
@@ -107,7 +266,7 @@
             if (respuesta.ok) {
                 mostrarAlerta(resultado.message || 'Usuario registrado exitosamente.', true);
                 document.getElementById('registerForm').reset();
-                setTimeout(() => toggleForms(false), 2000); // Redirigir a login
+                setTimeout(() => toggleForms(false), 2000);
             } else {
                 mostrarAlerta(resultado.error || 'Fallo al registrar', false);
             }
@@ -116,37 +275,203 @@
         }
     });
 
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
 
-        alertBox.style.display = 'none';
+    //Guardar Pedido
+    document.getElementById('pedidoForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    if (carritoActual.length === 0) {
+        mostrarAlerta("No puedes enviar un pedido vacío. Añade productos primero.", false);
+        return;
+    }
+
+    const usuario = JSON.parse(localStorage.getItem('usuario_sesion'));
+    
+    const jsonDetalles = JSON.stringify(carritoActual);
+    const totalFinal = document.getElementById('pedTotal').value;
+
+    const datos = {
+        id_usuario: usuario.id,
+        detalles: jsonDetalles, 
+        total: totalFinal
+    };
+
+    try {
+        const res = await fetch('api/pedido.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
+        const src = await res.json();
         
-        const datos = {
-            correo: document.getElementById('loginEmail').value, // Antes decía 'email'
-            contrasena: document.getElementById('loginPassword').value // Antes decía 'password'
-        };
-
-        try {
-            const respuesta = await fetch('api/login.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(datos)
-            });
-            const resultado = await respuesta.json();
-
-            if (respuesta.ok) {
-
-                const nombreUsuario = resultado.usuario && resultado.usuario.nombre ? resultado.usuario.nombre : "Personal";
-                const rolUsuario = resultado.usuario && resultado.usuario.rol ? resultado.usuario.rol : "Asignado";
-                
-                mostrarAlerta(`¡${resultado.message}! Bienvenido, ${nombreUsuario} (${rolUsuario})`, true);
-            } else {
-                mostrarAlerta(resultado.error || 'Error en la autenticación', false);
-            }
-        } catch (error) {
-            mostrarAlerta('Error de conexión con el servidor backend', false);
+        if(res.ok) {
+            mostrarAlerta(`Pedido enviado a la cocina con éxito.`, true);
+            carritoActual = [];
+            renderizarCarrito();
+            document.getElementById('pedidoForm').reset();
+            if (typeof cargarPedidosCaja === 'function') cargarPedidosCaja();
+        } else { 
+            mostrarAlerta(src.error, false); 
         }
+    } catch (x) { 
+        mostrarAlerta("Error al enviar el pedido al servidor", false); 
+    }
+});
+
+    //Cargar y finalizar pedidos
+    async function cargarPedidosCocina() {
+        try {
+            const res = await fetch('api/cocina.php');
+            const pedidos = await res.json();
+            const tbody = document.getElementById('tablaCocina');
+            tbody.innerHTML = '';
+            
+            pedidos.forEach(p => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${p.id}</td>
+                        <td>${p.detalles}</td>
+                        <td>${p.mesero || 'N/A'}</td>
+                        <td><button class="btn-action" onclick="terminarPlato(${p.id})">Listo</button></td>
+                    </tr>`;
+            });
+        } catch (e) { console.error("Error cargando cocina"); }
+    }
+
+    async function terminarPlato(id) {
+        await fetch('api/cocina.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id_pedido: id })
+        });
+        cargarPedidosCocina();
+    }
+
+    // Cargar y cobrar pedidos
+    async function cargarPedidosCaja() {
+        try {
+            const res = await fetch('api/caja.php');
+            const pedidos = await res.json();
+            const tbody = document.getElementById('tablaCaja');
+            tbody.innerHTML = '';
+            
+            pedidos.forEach(p => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${p.id}</td>
+                        <td>${p.detalles}</td>
+                        <td>$${p.total}</td>
+                        <td><button class="btn-action" onclick="cobrarPedido(${p.id})">Cobrar</button></td>
+                    </tr>`;
+            });
+        } catch (e) { console.error("Error cargando caja"); }
+    }
+
+  async function cobrarPedido(id) {
+    try {
+        const res = await fetch('api/caja.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id_pedido: id })
+        });
+        
+        if (res.ok) {
+            mostrarAlerta("¡Pedido cobrado con éxito y mesa liberada!", true);
+            cargarPedidosCaja();
+        }
+    } catch (e) {
+        console.error("Error al procesar el cobro", e);
+    }
+}
+
+    //Ver stock
+    async function cargarInventario() {
+        try {
+            const res = await fetch('api/inventario.php');
+            const items = await res.json();
+            const tbody = document.getElementById('tablaInventario');
+            tbody.innerHTML = '';
+            
+            items.forEach(i => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${i.nombre}</td>
+                        <td><strong>${i.cantidad}</strong></td>
+                        <td><strong>${i.precio}</strong></td>
+                    </tr>`;
+            });
+        } catch (e) { console.error("Error cargando inventario"); }
+    }
+    async function cargarProductosParaMesero() {
+    try {
+        const res = await fetch('api/inventario.php');
+        productosDisponibles = await res.json();
+        const select = document.getElementById('selectProductoMesa');
+        select.innerHTML = '';
+        
+        productosDisponibles.forEach(prod => {
+            select.innerHTML += `<option value="${prod.id}">${prod.nombre} - $${prod.precio}</option>`;
+        });
+    } catch (e) {
+        console.error("Error cargando productos para el mesero", e);
+    }
+}
+
+function agregarAlCarrito() {
+    const select = document.getElementById('selectProductoMesa');
+    const cantidadInput = document.getElementById('cantProductoMesa');
+    
+    const idProd = parseInt(select.value);
+    const cantidad = parseInt(cantidadInput.value);
+    
+    if (!idProd || cantidad <= 0) return;
+
+    const productoInfo = productosDisponibles.find(p => p.id === idProd);
+    
+    if (productoInfo) {
+        const existe = carritoActual.find(item => item.id === idProd);
+        if (existe) {
+            existe.cantidad += cantidad;
+        } else {
+            carritoActual.push({
+                id: productoInfo.id,
+                nombre: productoInfo.nombre,
+                precio: parseFloat(productoInfo.precio),
+                cantidad: cantidad
+            });
+        }
+        
+        cantidadInput.value = 1;
+        renderizarCarrito();
+    }
+}
+
+function eliminarDelCarrito(id) {
+    carritoActual = carritoActual.filter(item => item.id !== id);
+    renderizarCarrito();
+}
+
+function renderizarCarrito() {
+    const tbody = document.getElementById('tablaCarritoPedido');
+    tbody.innerHTML = '';
+    let totalAcumulado = 0;
+
+    carritoActual.forEach(item => {
+        const subtotal = item.precio * item.cantidad;
+        totalAcumulado += subtotal;
+
+        tbody.innerHTML += `
+            <tr>
+                <td>${item.nombre}</td>
+                <td>$${item.precio.toFixed(2)}</td>
+                <td>${item.cantidad}</td>
+                <td>$${subtotal.toFixed(2)}</td>
+                <td><button type="button" class="btn-action" style="background-color: #dc3545;" onclick="eliminarDelCarrito(${item.id})">X</button></td>
+            </tr>`;
     });
+
+    document.getElementById('pedTotal').value = totalAcumulado.toFixed(2);
+}
 </script>
 </body>
 </html>
